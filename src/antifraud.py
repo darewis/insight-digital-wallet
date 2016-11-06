@@ -51,21 +51,25 @@ class antifraud(object):
         with open(self.stream_data) as csvfile:
             reader = csv.DictReader(csvfile, delimiter=',', skipinitialspace = True)
             for row in reader:
-                print(row['id1'] + ' ' + row['id2'])
                 self.checkTrust(row['id1'], row['id2'])
                 self.add_relation(row)
 
     ## output trustworthiness to file
     def checkTrust(self, user1, user2):
-        if self.checkDirectRelation(user1, user2):
-            self.o1.write('trusted\n')
+        if user1 in self.relation_graph and user2 in self.relation_graph:
+            if self.checkDirectRelation(user1, user2):
+                self.o1.write('trusted\n')
+            else:
+                self.o1.write('unverified\n')
+
+            if self.checkFriendOfFriend(user1, user2):
+                self.o2.write('trusted\n')
+            else:
+                self.o2.write('unverified\n')
         else:
             self.o1.write('unverified\n')
-
-        if self.checkFriendOfFriend(user1, user2):
-            self.o2.write('trusted\n')
-        else:
             self.o2.write('unverified\n')
+            self.o3.write('unverified\n')
 
     ## check whether or not transaction is 'trusted'
     def checkDirectRelation(self, user1, user2):
