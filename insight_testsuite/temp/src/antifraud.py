@@ -66,20 +66,26 @@ class antifraud(object):
                 self.o2.write('trusted\n')
             else:
                 self.o2.write('unverified\n')
+
+            if self.checkFourthDegree(user1, user2):
+                self.o3.write('trusted\n')
+            else:
+                self.o3.write('unverified\n')
         else:
             self.o1.write('unverified\n')
             self.o2.write('unverified\n')
             self.o3.write('unverified\n')
 
-    ## check whether or not transaction is 'trusted'
+    ## check direct relation with simple comparison of user's friend groups
     def checkDirectRelation(self, user1, user2):
         if user2 in self.relation_graph[user1]:
             return True
         else:
             return False
 
+    ## check for one degree of seperation by comparing both user's set of friends
     def checkFriendOfFriend(self, user1, user2):
-        if self.checkDirectRelation(user1, user2):
+        if self.checkDirectRelation(user1, user2): #check first that a serperation exists
             return True
         else:
             mutual_friends = self.relation_graph[user1].intersection(self.relation_graph[user2])
@@ -87,6 +93,27 @@ class antifraud(object):
                 return True
             else:
                 return False
+
+    def checkFourthDegree(self, user1, user2):
+        if self.checkFriendOfFriend(user1, user2):
+            return True
+        else:
+            ## find shortest path using BFS
+            if len(next(self.BFS(user1, user2))) < 6:
+                return True
+            else:
+                return False
+            
+    def BFS(self, start, end):
+        queue = [(start, [start])]
+        while queue:
+            (vertex, path) = queue.pop(0)
+            for next in self.relation_graph[vertex] - set(path):
+                if next == end:
+                    yield path + [next]
+                else:
+                    queue.append((next, path + [next]))
+            
 
 af = antifraud()
 af.run()
