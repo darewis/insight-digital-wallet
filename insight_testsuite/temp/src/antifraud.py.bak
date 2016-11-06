@@ -16,11 +16,11 @@ class antifraud(object):
             os.remove(self.output1)
         self.o1 = open(self.output1, 'w')
 
-        if os.path.exists(self.output2):
+	if os.path.exists(self.output2):
             os.remove(self.output2)
         self.o2 = open(self.output2, 'w')
 
-        if os.path.exists(self.output3):
+	if os.path.exists(self.output3):
             os.remove(self.output3)
         self.o3 = open(self.output3, 'w')
 
