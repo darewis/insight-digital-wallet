@@ -43,17 +43,20 @@ class antifraud(object):
 
     ## open batch data
     def parseBatchData(self):
+        linenumber = 1
         with open(self.batch_data, encoding='utf-8') as csvfile:
             reader = csv.DictReader(csvfile, delimiter=',', skipinitialspace = True, quoting=csv.QUOTE_NONE)
             for row in reader:
+                linenumber += 1
+                print('batch: ' + str(linenumber) + ' ' + str(row['id1']) + ' ' + str(row['id2']))
                 self.add_relation(row)
-        print('success')
 
     ## open stream data
     def parseStreamData(self):
         with open(self.stream_data, encoding='utf-8') as csvfile:
             reader = csv.DictReader(csvfile, delimiter=',', skipinitialspace = True, quoting=csv.QUOTE_NONE)
             for row in reader:
+                print('stream: ' + str(row['id1']) + ' ' + str(row['id2']))
                 self.checkTrust(row['id1'], row['id2'])
                 self.add_relation(row)
 
