@@ -2,9 +2,11 @@ import csv
 import sys
 import os
 
+
 class antifraud(object):
 
     def __init__(self):
+        
         ## Get args
         self.batch_data = sys.argv[1]
         self.stream_data = sys.argv[2]
@@ -41,15 +43,16 @@ class antifraud(object):
 
     ## open batch data
     def parseBatchData(self):
-        with open(self.batch_data) as csvfile:
-            reader = csv.DictReader(csvfile, delimiter=',', skipinitialspace = True)
+        with open(self.batch_data, encoding='utf-8') as csvfile:
+            reader = csv.DictReader(csvfile, delimiter=',', skipinitialspace = True, quoting=csv.QUOTE_NONE)
             for row in reader:
                 self.add_relation(row)
+        print('success')
 
     ## open stream data
     def parseStreamData(self):
-        with open(self.stream_data) as csvfile:
-            reader = csv.DictReader(csvfile, delimiter=',', skipinitialspace = True)
+        with open(self.stream_data, encoding='utf-8') as csvfile:
+            reader = csv.DictReader(csvfile, delimiter=',', skipinitialspace = True, quoting=csv.QUOTE_NONE)
             for row in reader:
                 self.checkTrust(row['id1'], row['id2'])
                 self.add_relation(row)
