@@ -1,6 +1,9 @@
 #Insight Data Engineering Challenge
 Submission for challenge by Devin Rewis
 
+##Dependencies
+pip install pandas
+
 # Table of Contents
 
 1. [Challenge Summary] (README.md#challenge-summary)
