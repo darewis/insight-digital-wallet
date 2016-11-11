@@ -58,9 +58,6 @@ class antifraud(object):
                              quoting=csv.QUOTE_NONE,
                              skiprows=1,
                              skipinitialspace=True)
-        #s = df.groupby(['id1', 'id2']).size()
-        #m = s.unstack()
-        #m = m.fillna(0)
         self.batch_graph = df
 
     ## open stream data
@@ -74,10 +71,6 @@ class antifraud(object):
                              quoting=csv.QUOTE_NONE,
                              skiprows=1,
                              skipinitialspace=True)
-        #s = df.groupby(['id1', 'id2']).size()
-        #m = s.unstack()
-        #m = m.fillna(0)
-        #pandas.concat([self.relation_graph, m], axis=1)
         self.stream_graph = df
 
     ## output trustworthiness to file
