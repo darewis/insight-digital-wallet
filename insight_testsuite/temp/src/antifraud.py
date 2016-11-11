@@ -1,6 +1,7 @@
 import csv
 import sys
 import os
+import pandas
 
 
 class antifraud(object):
@@ -43,19 +44,48 @@ class antifraud(object):
 
     ## open batch data
     def parseBatchData(self):
-        with open(self.batch_data, encoding='utf-8') as csvfile:
-            reader = csv.DictReader(csvfile, delimiter=',', skipinitialspace = True, quoting=csv.QUOTE_NONE)
-            for row in reader:
-                self.add_relation(row)
-        print('success')
+        #with open(self.batch_data, encoding='utf-8') as csvfile:
+        #    reader = csv.DictReader(csvfile, delimiter=',', skipinitialspace = True, quoting=csv.QUOTE_NONE)
+        #    for row in reader:
+        #        print('batch: ' + str(linenumber) + ' ' + str(row['id1']) + ' ' + str(row['id2']))
+        #        self.add_relation(row)
+        df = pandas.read_csv(self.batch_data,
+                             index_col=False,
+                             names=['id1', 'id2'],
+                             usecols=[1, 2],
+                             encoding='utf-8',
+                             engine='python',
+                             sep=',',
+                             quoting=csv.QUOTE_NONE,
+                             skiprows=1,
+                             skipinitialspace=True,
+                             nrows=10000)
+        self.relation_graph = {k: set(v) for k,v in df.groupby('id1')['id2']}
+        print(self.relation_graph)
 
     ## open stream data
     def parseStreamData(self):
-        with open(self.stream_data, encoding='utf-8') as csvfile:
-            reader = csv.DictReader(csvfile, delimiter=',', skipinitialspace = True, quoting=csv.QUOTE_NONE)
-            for row in reader:
-                self.checkTrust(row['id1'], row['id2'])
-                self.add_relation(row)
+        #with open(self.stream_data, encoding='utf-8') as csvfile:
+        #    reader = csv.DictReader(csvfile, delimiter=',', skipinitialspace = True, quoting=csv.QUOTE_NONE)
+        #    for row in reader:
+        #        print('stream: ' + str(row['id1']) + ' ' + str(row['id2']))
+        #        self.checkTrust(row['id1'], row['id2'])
+        #        self.add_relation(row)
+        df = pandas.read_csv(self.stream_data,
+                             index_col=False,
+                             names=['id1', 'id2'],
+                             usecols=[1, 2],
+                             encoding='utf-8',
+                             engine='python',
+                             sep=',',
+                             quoting=csv.QUOTE_NONE,
+                             skiprows=1,
+                             nrows=10000,
+                             skipinitialspace=True)
+        for index, row in df.iterrows():
+            print('stream: ' + str(row['id1']) + ' ' + str(row['id2']))
+            self.checkTrust(row['id1'], row['id2'])
+            self.add_relation(row)
 
     ## output trustworthiness to file
     def checkTrust(self, user1, user2):

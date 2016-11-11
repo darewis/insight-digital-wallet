@@ -1,6 +1,7 @@
 import csv
 import sys
 import os
+import pandas
 
 
 class antifraud(object):
@@ -29,7 +30,9 @@ class antifraud(object):
         self.relation_graph = {} #this will store relationships between users
 
     def run(self):
+        print('Processing batch data...')
         self.parseBatchData()
+        print('Processing stream data...')
         self.parseStreamData()
         self.closeFiles()
 
@@ -43,19 +46,47 @@ class antifraud(object):
 
     ## open batch data
     def parseBatchData(self):
-        with open(self.batch_data, encoding='utf-8') as csvfile:
-            reader = csv.DictReader(csvfile, delimiter=',', skipinitialspace = True, quoting=csv.QUOTE_NONE)
-            for row in reader:
-                self.add_relation(row)
-        print('success')
+        #with open(self.batch_data, encoding='utf-8') as csvfile:
+        #    reader = csv.DictReader(csvfile, delimiter=',', skipinitialspace = True, quoting=csv.QUOTE_NONE)
+        #    for row in reader:
+        #        print('batch: ' + str(linenumber) + ' ' + str(row['id1']) + ' ' + str(row['id2']))
+        #        self.add_relation(row)
+        
+        df = pandas.read_csv(self.batch_data,
+                             index_col=False,
+                             names=['id1', 'id2'],
+                             usecols=[1, 2],
+                             encoding='utf-8',
+                             engine='python',
+                             sep=',',
+                             quoting=csv.QUOTE_NONE,
+                             skiprows=1,
+                             skipinitialspace=True)
+        self.relation_graph = {k: set(v) for k,v in df.groupby('id1')['id2']}
 
     ## open stream data
     def parseStreamData(self):
-        with open(self.stream_data, encoding='utf-8') as csvfile:
-            reader = csv.DictReader(csvfile, delimiter=',', skipinitialspace = True, quoting=csv.QUOTE_NONE)
-            for row in reader:
-                self.checkTrust(row['id1'], row['id2'])
-                self.add_relation(row)
+        #with open(self.stream_data, encoding='utf-8') as csvfile:
+        #    reader = csv.DictReader(csvfile, delimiter=',', skipinitialspace = True, quoting=csv.QUOTE_NONE)
+        #    for row in reader:
+        #        print('stream: ' + str(row['id1']) + ' ' + str(row['id2']))
+        #        self.checkTrust(row['id1'], row['id2'])
+        #        self.add_relation(row)
+        
+        df = pandas.read_csv(self.stream_data,
+                             index_col=False,
+                             names=['id1', 'id2'],
+                             usecols=[1, 2],
+                             encoding='utf-8',
+                             engine='python',
+                             sep=',',
+                             quoting=csv.QUOTE_NONE,
+                             skiprows=1,
+                             skipinitialspace=True)
+        for index, row in df.iterrows():
+            print('stream: ' + str(index) + ' ' + str(row['id1']) + ' ' + str(row['id2']))
+            self.checkTrust(row['id1'], row['id2'])
+            self.add_relation(row)
 
     ## output trustworthiness to file
     def checkTrust(self, user1, user2):
@@ -102,7 +133,7 @@ class antifraud(object):
             return True
         else:
             ## find shortest path using BFS
-            if len(next(self.BFS(user1, user2))) < 6:
+            if len(next(self.BFS(user1, user2), [0]*6)) < 6:
                 return True
             else:
                 return False
