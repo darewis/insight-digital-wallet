@@ -2,6 +2,8 @@ import csv
 import sys
 import os
 import pandas
+import numpy as np
+import networkx as nx
 
 
 class antifraud(object):
@@ -27,33 +29,27 @@ class antifraud(object):
             os.remove(self.output3)
         self.o3 = open(self.output3, 'w')
 
-        self.relation_graph = {} #this will store relationships between users
+        self.relation_graph = pandas.DataFrame() #this will store relationships between users
+        self.batch_graph = pandas.DataFrame()
+        self.stream_graph = pandas.DataFrame() #this will be used to determine order in which data will be processed
 
     def run(self):
         print('Processing batch data...')
         self.parseBatchData()
         print('Processing stream data...')
         self.parseStreamData()
+        print('Checking relationships')
+        self.checkTrust()
         self.closeFiles()
 
     def closeFiles(self):
         self.o1.close()
-
-    ## adds a relationship to relation_graph
-    def add_relation(self, row):
-        self.relation_graph.setdefault(row['id1'],set()).add(row['id2'])
-        self.relation_graph.setdefault(row['id2'],set()).add(row['id1'])
+        self.o2.close()
+        self.o3.close()
 
     ## open batch data
     def parseBatchData(self):
-        #with open(self.batch_data, encoding='utf-8') as csvfile:
-        #    reader = csv.DictReader(csvfile, delimiter=',', skipinitialspace = True, quoting=csv.QUOTE_NONE)
-        #    for row in reader:
-        #        print('batch: ' + str(linenumber) + ' ' + str(row['id1']) + ' ' + str(row['id2']))
-        #        self.add_relation(row)
-        
         df = pandas.read_csv(self.batch_data,
-                             index_col=False,
                              names=['id1', 'id2'],
                              usecols=[1, 2],
                              encoding='utf-8',
@@ -62,19 +58,14 @@ class antifraud(object):
                              quoting=csv.QUOTE_NONE,
                              skiprows=1,
                              skipinitialspace=True)
-        self.relation_graph = {k: set(v) for k,v in df.groupby('id1')['id2']}
+        #s = df.groupby(['id1', 'id2']).size()
+        #m = s.unstack()
+        #m = m.fillna(0)
+        self.batch_graph = df
 
     ## open stream data
     def parseStreamData(self):
-        #with open(self.stream_data, encoding='utf-8') as csvfile:
-        #    reader = csv.DictReader(csvfile, delimiter=',', skipinitialspace = True, quoting=csv.QUOTE_NONE)
-        #    for row in reader:
-        #        print('stream: ' + str(row['id1']) + ' ' + str(row['id2']))
-        #        self.checkTrust(row['id1'], row['id2'])
-        #        self.add_relation(row)
-        
         df = pandas.read_csv(self.stream_data,
-                             index_col=False,
                              names=['id1', 'id2'],
                              usecols=[1, 2],
                              encoding='utf-8',
@@ -83,71 +74,50 @@ class antifraud(object):
                              quoting=csv.QUOTE_NONE,
                              skiprows=1,
                              skipinitialspace=True)
-        for index, row in df.iterrows():
-            print('stream: ' + str(index) + ' ' + str(row['id1']) + ' ' + str(row['id2']))
-            self.checkTrust(row['id1'], row['id2'])
-            self.add_relation(row)
+        #s = df.groupby(['id1', 'id2']).size()
+        #m = s.unstack()
+        #m = m.fillna(0)
+        #pandas.concat([self.relation_graph, m], axis=1)
+        self.stream_graph = df
 
     ## output trustworthiness to file
-    def checkTrust(self, user1, user2):
-        if user1 in self.relation_graph and user2 in self.relation_graph:
-            if self.checkDirectRelation(user1, user2):
+    def checkTrust(self):
+        for index, row in self.stream_graph.iterrows():
+            #print(str(row['id1']) + ' ' + str(row['id2']))
+            #check direct relation
+            if self.checkRelation(self.batch_graph, 1, row['id1'], row['id2']) <= 1:
                 self.o1.write('trusted\n')
+                print('trusted')
             else:
                 self.o1.write('unverified\n')
+                print('unverified')
 
-            if self.checkFriendOfFriend(user1, user2):
+            #check friend of friend
+            if self.checkRelation(self.batch_graph, 2, row['id1'], row['id2']) <= 2:
                 self.o2.write('trusted\n')
+                print('trusted')
             else:
                 self.o2.write('unverified\n')
+                print('unverified')
 
-            if self.checkFourthDegree(user1, user2):
+            #check 4th degree friend
+            if self.checkRelation(self.batch_graph, 5, row['id1'], row['id2']) <= 4:
                 self.o3.write('trusted\n')
+                print('trusted')
             else:
                 self.o3.write('unverified\n')
-        else:
-            self.o1.write('unverified\n')
-            self.o2.write('unverified\n')
-            self.o3.write('unverified\n')
+                print('unverified')
+
+            self.batch_graph.loc[self.batch_graph.shape[0]] = row
 
     ## check direct relation with simple comparison of user's friend groups
-    def checkDirectRelation(self, user1, user2):
-        if user2 in self.relation_graph[user1]:
-            return True
-        else:
-            return False
-
-    ## check for one degree of seperation by comparing both user's set of friends
-    def checkFriendOfFriend(self, user1, user2):
-        if self.checkDirectRelation(user1, user2): #check first that a serperation exists
-            return True
-        else:
-            mutual_friends = self.relation_graph[user1].intersection(self.relation_graph[user2])
-            if len(mutual_friends) > 0:
-                return True
-            else:
-                return False
-
-    def checkFourthDegree(self, user1, user2):
-        if self.checkFriendOfFriend(user1, user2):
-            return True
-        else:
-            ## find shortest path using BFS
-            if len(next(self.BFS(user1, user2), [0]*6)) < 6:
-                return True
-            else:
-                return False
-            
-    def BFS(self, start, end):
-        queue = [(start, [start])]
-        while queue:
-            (vertex, path) = queue.pop(0)
-            for next in self.relation_graph[vertex] - set(path):
-                if next == end:
-                    yield path + [next]
-                else:
-                    queue.append((next, path + [next]))
-            
+    def checkRelation(self, graph, factor, user1, user2):
+        try:
+            n = nx.from_pandas_dataframe(graph, 'id1', 'id2')
+            a = nx.shortest_path_length(n, user1, user2)
+            return a
+        except:
+            return 100      
 
 af = antifraud()
 af.run()

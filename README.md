@@ -2,7 +2,9 @@
 Submission for challenge by Devin Rewis
 
 ##Dependencies
+pip install numpy
 pip install pandas
+pip install networkx
 
 # Table of Contents
 
